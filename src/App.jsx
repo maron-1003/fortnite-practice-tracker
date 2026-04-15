@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Doughnut, Bar } from "react-chartjs-2";
+import { Doughnut, Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -8,44 +8,50 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
 } from "chart.js";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
-import { Line } from "react-chartjs-2";
-import { PointElement, LineElement } from "chart.js";
 
-ChartJS.register(PointElement, LineElement);
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement
+);
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 dayjs.extend(isoWeek);
 
-// 週番号を取得
+// 週番号
 function getWeekNumber(date) {
   return dayjs(date).isoWeek();
 }
 
-// 週ごとの合計データを作成
+// 週ごとの合計
 function getWeeklyChartData(records) {
   const weekly = {};
-
   records.forEach((r) => {
     const week = getWeekNumber(r.date);
     if (!weekly[week]) weekly[week] = 0;
     weekly[week] += r.minutes;
   });
-
   return weekly;
 }
+
+// 日ごとの合計
 function getDailyTotals(records) {
   const daily = {};
-
   records.forEach((r) => {
     if (!daily[r.date]) daily[r.date] = 0;
     daily[r.date] += r.minutes;
   });
-
   return daily;
 }
 
@@ -56,7 +62,9 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [records, setRecords] = useState([]);
 
-  const [selectedDate, setSelectedDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [selectedDate, setSelectedDate] = useState(
+    dayjs().format("YYYY-MM-DD")
+  );
 
   const timerRef = useRef(null);
 
@@ -64,22 +72,6 @@ export default function App() {
     const saved = localStorage.getItem("fortnite_records");
     if (saved) setRecords(JSON.parse(saved));
   }, []);
-
-  const dailyTotalsAll = getDailyTotals(records);
-
-  const lineChartData = {
-    labels: Object.keys(dailyTotalsAll),
-    datasets: [
-      {
-        label: "1日の合計練習時間（分）",
-        data: Object.values(dailyTotalsAll),
-        borderColor: "rgba(56, 189, 248, 1)",
-        backgroundColor: "rgba(56, 189, 248, 0.3)",
-        tension: 0.3,
-        fill: true,
-      },
-    ],
-  };
 
   const handleStart = () => {
     if (!practiceType) {
@@ -111,11 +103,17 @@ export default function App() {
 
     const newRecord = {
       type: practiceType,
-      start: startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      end: end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      start: startTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      end: end.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       minutes,
-      date: dayjs(end).format("YYYY-MM-DD"),
-      fullDate: end.toLocaleString(),
+      date: selectedDate, // ← 修正済み
+      fullDate: `${selectedDate} ${end.toLocaleTimeString()}`, // ← 修正済み
     };
 
     const updated = [...records, newRecord];
@@ -144,8 +142,8 @@ export default function App() {
       start: "--",
       end: "--",
       minutes,
-      date: selectedDate, // ← カレンダーで選んだ日付を使う
-      fullDate: `${selectedDate} ${now.toLocaleTimeString()}`, // ← 時間だけ now を使う
+      date: selectedDate, // ← 修正済み
+      fullDate: `${selectedDate} ${now.toLocaleTimeString()}`, // ← 修正済み
     };
 
     const updated = [...records, newRecord];
@@ -196,7 +194,7 @@ export default function App() {
     return total;
   };
 
-  // 週グラフデータ
+  // 週グラフ
   const weeklyData = getWeeklyChartData(records);
   const weeklyChartData = {
     labels: Object.keys(weeklyData).map((w) => `Week ${w}`),
@@ -209,10 +207,25 @@ export default function App() {
     ],
   };
 
+  // 日ごとの折れ線グラフ
+  const dailyTotalsAll = getDailyTotals(records);
+  const lineChartData = {
+    labels: Object.keys(dailyTotalsAll),
+    datasets: [
+      {
+        label: "1日の合計練習時間（分）",
+        data: Object.values(dailyTotalsAll),
+        borderColor: "rgba(56, 189, 248, 1)",
+        backgroundColor: "rgba(56, 189, 248, 0.3)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col items-center">
 
-      {/* カレンダー色修正 */}
       <style>{`
         .react-calendar {
           background-color: #1f2937 !important;
@@ -246,20 +259,20 @@ export default function App() {
         Fortnite 練習トラッカー
       </h1>
 
-      {/* 上段：カレンダー＋日別グラフ */}
+      {/* カレンダー＋日別グラフ */}
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* カレンダー */}
         <div className="bg-gray-800 p-4 rounded-xl shadow-lg border border-purple-500">
           <h2 className="text-xl font-bold text-purple-300 mb-2">日付を選択</h2>
 
           <Calendar
-            onChange={(value) => setSelectedDate(dayjs(value).format("YYYY-MM-DD"))}
+            onChange={(value) =>
+              setSelectedDate(dayjs(value).format("YYYY-MM-DD"))
+            }
             value={new Date(selectedDate)}
           />
         </div>
 
-        {/* 日別グラフ */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
           <h2 className="text-2xl font-bold mb-4 text-blue-300">
             {selectedDate} の練習割合
@@ -271,10 +284,9 @@ export default function App() {
             <p className="text-gray-400">この日の記録はありません</p>
           )}
         </div>
-
       </div>
 
-      {/* 中段：タイマー */}
+      {/* タイマー */}
       <div className="w-full max-w-4xl bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
 
         <select
@@ -320,17 +332,23 @@ export default function App() {
           </button>
         </div>
 
-        {/* テスト用時間追加 */}
         <div className="mt-4 grid grid-cols-4 gap-2">
-          <button onClick={() => addTestTime(1)} className="bg-blue-500 p-2 rounded">+1分</button>
-          <button onClick={() => addTestTime(5)} className="bg-blue-500 p-2 rounded">+5分</button>
-          <button onClick={() => addTestTime(30)} className="bg-blue-500 p-2 rounded">+30分</button>
-          <button onClick={() => addTestTime(60)} className="bg-blue-500 p-2 rounded">+60分</button>
+          <button onClick={() => addTestTime(1)} className="bg-blue-500 p-2 rounded">
+            +1分
+          </button>
+          <button onClick={() => addTestTime(5)} className="bg-blue-500 p-2 rounded">
+            +5分
+          </button>
+          <button onClick={() => addTestTime(30)} className="bg-blue-500 p-2 rounded">
+            +30分
+          </button>
+          <button onClick={() => addTestTime(60)} className="bg-blue-500 p-2 rounded">
+            +60分
+          </button>
         </div>
-
       </div>
 
-      {/* 下段：記録一覧 */}
+      {/* 記録一覧 */}
       <div className="w-full max-w-6xl mt-12">
         <h2 className="text-2xl font-bold mb-4 text-blue-300">
           {selectedDate} の記録一覧
@@ -353,7 +371,9 @@ export default function App() {
             </button>
 
             <p className="font-bold text-blue-300 text-lg">{r.type}</p>
-            <p>{r.start} 〜 {r.end}（{r.minutes} 分）</p>
+            <p>
+              {r.start} 〜 {r.end}（{r.minutes} 分）
+            </p>
             <p className="text-sm text-gray-400">{r.fullDate}</p>
           </div>
         ))}
@@ -367,22 +387,17 @@ export default function App() {
           <h2 className="text-2xl font-bold mb-4 text-purple-300">
             週ごとの練習時間グラフ
           </h2>
-
           <Bar data={weeklyChartData} />
         </div>
-        {/* 棒グラフ */}
+
+        {/* 日ごとの折れ線グラフ */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
           <h2 className="text-2xl font-bold mb-4 text-cyan-300">
             日ごとの練習時間推移
           </h2>
-
           <Line data={lineChartData} />
+        </div>
       </div>
-
-
-      </div>
-
-
     </div>
   );
 }
