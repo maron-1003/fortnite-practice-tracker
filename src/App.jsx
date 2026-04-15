@@ -114,8 +114,8 @@ export default function App() {
       start: "--",
       end: "--",
       minutes,
-      date: dayjs(now).format("YYYY-MM-DD"),
-      fullDate: now.toLocaleString(),
+      date: selectedDate, // ← カレンダーで選んだ日付を使う
+      fullDate: `${selectedDate} ${now.toLocaleTimeString()}`, // ← 時間だけ now を使う
     };
 
     const updated = [...records, newRecord];
