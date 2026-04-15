@@ -48,16 +48,6 @@ function getDailyTotals(records) {
 
   return daily;
 }
-function getDailyTotals(records) {
-  const daily = {};
-
-  records.forEach((r) => {
-    if (!daily[r.date]) daily[r.date] = 0;
-    daily[r.date] += r.minutes;
-  });
-
-  return daily;
-}
 
 export default function App() {
   const [practiceType, setPracticeType] = useState("");
@@ -380,8 +370,18 @@ export default function App() {
 
           <Bar data={weeklyChartData} />
         </div>
+        {/* 棒グラフ */}
+        <div className="bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
+          <h2 className="text-2xl font-bold mb-4 text-cyan-300">
+            日ごとの練習時間推移
+          </h2>
+
+          <Line data={lineChartData} />
+      </div>
+
 
       </div>
+
 
     </div>
   );
