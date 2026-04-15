@@ -13,6 +13,10 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
+import { Line } from "react-chartjs-2";
+import { PointElement, LineElement } from "chart.js";
+
+ChartJS.register(PointElement, LineElement);
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 dayjs.extend(isoWeek);
@@ -34,6 +38,26 @@ function getWeeklyChartData(records) {
 
   return weekly;
 }
+function getDailyTotals(records) {
+  const daily = {};
+
+  records.forEach((r) => {
+    if (!daily[r.date]) daily[r.date] = 0;
+    daily[r.date] += r.minutes;
+  });
+
+  return daily;
+}
+function getDailyTotals(records) {
+  const daily = {};
+
+  records.forEach((r) => {
+    if (!daily[r.date]) daily[r.date] = 0;
+    daily[r.date] += r.minutes;
+  });
+
+  return daily;
+}
 
 export default function App() {
   const [practiceType, setPracticeType] = useState("");
@@ -50,6 +74,22 @@ export default function App() {
     const saved = localStorage.getItem("fortnite_records");
     if (saved) setRecords(JSON.parse(saved));
   }, []);
+
+  const dailyTotalsAll = getDailyTotals(records);
+
+  const lineChartData = {
+    labels: Object.keys(dailyTotalsAll),
+    datasets: [
+      {
+        label: "1日の合計練習時間（分）",
+        data: Object.values(dailyTotalsAll),
+        borderColor: "rgba(56, 189, 248, 1)",
+        backgroundColor: "rgba(56, 189, 248, 0.3)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
 
   const handleStart = () => {
     if (!practiceType) {
