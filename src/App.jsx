@@ -163,20 +163,23 @@ export default function App() {
   selectedRecords.forEach((r) => {
     dailyTotals[r.type] = (dailyTotals[r.type] || 0) + r.minutes;
   });
+  // 練習内容ごとの固定色
+  const colorMap = {
+    "エイム練習": "#60a5fa",   // 青
+    "建築練習": "#34d399",     // 緑
+    "編集練習": "#fbbf24",     // 黄
+    "初動ファイト": "#f87171", // 赤
+    "リプレイ研究": "#a78bfa", // 紫
+  };
 
   const dailyChartData = {
     labels: Object.keys(dailyTotals),
     datasets: [
       {
         data: Object.values(dailyTotals),
-        backgroundColor: [
-          "#60a5fa",
-          "#34d399",
-          "#fbbf24",
-          "#f87171",
-          "#a78bfa",
-          "#fb7185",
-        ],
+        backgroundColor: Object.keys(dailyTotals).map(
+          (type) => colorMap[type] || "#ffffff"
+        ),
       },
     ],
   };
