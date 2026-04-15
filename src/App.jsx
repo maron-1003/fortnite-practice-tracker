@@ -1,13 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { Doughnut } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+} from "chart.js";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 dayjs.extend(isoWeek);
+
+// 週番号を取得
+function getWeekNumber(date) {
+  return dayjs(date).isoWeek();
+}
+
+// 週ごとの合計データを作成
+function getWeeklyChartData(records) {
+  const weekly = {};
+
+  records.forEach((r) => {
+    const week = getWeekNumber(r.date);
+    if (!weekly[week]) weekly[week] = 0;
+    weekly[week] += r.minutes;
+  });
+
+  return weekly;
+}
 
 export default function App() {
   const [practiceType, setPracticeType] = useState("");
@@ -140,10 +166,23 @@ export default function App() {
     return total;
   };
 
+  // 週グラフデータ
+  const weeklyData = getWeeklyChartData(records);
+  const weeklyChartData = {
+    labels: Object.keys(weeklyData).map((w) => `Week ${w}`),
+    datasets: [
+      {
+        label: "週の合計練習時間（分）",
+        data: Object.values(weeklyData),
+        backgroundColor: "rgba(99, 102, 241, 0.7)",
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col items-center">
 
-      {/* カレンダー色修正（今日を強調） */}
+      {/* カレンダー色修正 */}
       <style>{`
         .react-calendar {
           background-color: #1f2937 !important;
@@ -165,7 +204,6 @@ export default function App() {
         .react-calendar__tile:hover {
           background: #1e40af !important;
         }
-        /* 今日の日付をもっと強調 */
         .react-calendar__tile--now {
           background: rgba(168, 85, 247, 0.3) !important;
           border: 2px solid #a855f7 !important;
@@ -178,7 +216,7 @@ export default function App() {
         Fortnite 練習トラッカー
       </h1>
 
-      {/* 上段：カレンダー＋グラフ */}
+      {/* 上段：カレンダー＋日別グラフ */}
       <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* カレンダー */}
@@ -262,7 +300,7 @@ export default function App() {
 
       </div>
 
-      {/* 下段：記録一覧（ページの一番下） */}
+      {/* 下段：記録一覧 */}
       <div className="w-full max-w-6xl mt-12">
         <h2 className="text-2xl font-bold mb-4 text-blue-300">
           {selectedDate} の記録一覧
@@ -293,9 +331,18 @@ export default function App() {
         <h2 className="text-xl font-bold text-green-400 mt-4">
           この週の合計: {getWeeklyTotal()} 分
         </h2>
+
+        {/* 週グラフ */}
+        <div className="bg-gray-800 p-6 rounded-xl shadow-lg mt-10">
+          <h2 className="text-2xl font-bold mb-4 text-purple-300">
+            週ごとの練習時間グラフ
+          </h2>
+
+          <Bar data={weeklyChartData} />
+        </div>
+
       </div>
 
     </div>
   );
-  //メモテスト
 }
